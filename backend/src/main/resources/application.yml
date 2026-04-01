@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: ${DATABASE_URL:jdbc:mysql://localhost:3306/ecoride?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
-    username: root
-    password: preetam@123P
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -34,6 +34,10 @@ ecoride:
     secret: ${JWT_SECRET:ecoride-super-secret-key-change-in-production-min-256-bits-long}
     expiry-ms: 86400000   # 24 hours
   allowed-email-domain: ${EMAIL_DOMAIN:nhce.edu}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:120}
+    auth-requests-per-minute: ${RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE:20}
   carbon:
     # grams of CO2 saved per km vs solo car
     savings-per-km-grams: 120
