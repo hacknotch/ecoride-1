@@ -1,0 +1,4 @@
+target/*
+!target/ecoride-backend-1.0.0.jar
+*.md
+.git
