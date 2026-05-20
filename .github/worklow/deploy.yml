@@ -1,0 +1,58 @@
+name: Deploy EcoRide
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build backend JAR
+        run: |
+          cd backend
+          mvn package -DskipTests
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 025931153285.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Build and push backend image
+        run: |
+          docker build -t ecoride-backend ./backend
+          docker tag ecoride-backend:latest 025931153285.dkr.ecr.ap-south-1.amazonaws.com/ecoride-backend:latest
+          docker push 025931153285.dkr.ecr.ap-south-1.amazonaws.com/ecoride-backend:latest
+
+      - name: Build and push frontend image
+        run: |
+          docker build --build-arg NEXT_PUBLIC_API_URL=http://15.207.30.145:8080/api/v1 -t ecoride-frontend ./frontend
+          docker tag ecoride-frontend:latest 025931153285.dkr.ecr.ap-south-1.amazonaws.com/ecoride-frontend:latest
+          docker push 025931153285.dkr.ecr.ap-south-1.amazonaws.com/ecoride-frontend:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 025931153285.dkr.ecr.ap-south-1.amazonaws.com
+            sudo docker compose down
+            sudo docker compose up -d
